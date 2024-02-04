@@ -19,7 +19,8 @@ namespace common
     {
     public:
         typedef std::shared_ptr<LogEvent> ptr;
-        LogEvent();
+        LogEvent(const char* file, int32_t line, uint32_t elapse, 
+            uint32_t thread_id, uint32_t fiber_id, uint64_t time);
 
         const char *getFile() const {
             return m_file;
@@ -45,8 +46,12 @@ namespace common
             return m_time;
         }
 
-        const std::string &getContent() const {
-            return m_content;
+        const std::string getContent() const {
+            return m_ss.str();
+        }
+
+        const std::stringstream& getSS() const {
+            return m_ss;
         }
 
         const std::string &getName() const {
@@ -60,7 +65,7 @@ namespace common
         uint32_t m_threadId = 0;       //线程id
         uint32_t m_fiberId = 0;        //协程id
         uint64_t m_time;               //时间戳
-        std::string m_content;         //内容
+        std::stringstream m_ss;         //内容
         std::string m_name;
     };
 
@@ -95,9 +100,12 @@ namespace common
         };
 
         void init();
+
+        bool isError() const { return m_error;}
     private:
         std::string m_pattern;
         std::vector<FormatItem::ptr> m_items;
+        bool m_error = false;
     };
 
     //日志输出地
@@ -141,6 +149,7 @@ namespace common
         std::string m_name;
         LogLevel::Level m_level;
         std::list<LogAppender::ptr> m_appenderList; //Appender集合
+        LogFormatter::ptr m_formatter;
     };
 
     //输出到控制台的Appender
