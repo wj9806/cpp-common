@@ -89,7 +89,9 @@ namespace common
     public:
         typedef std::shared_ptr<LogFormatter> ptr;
         LogFormatter(const std::string& pattern);
-        virtual std::string format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event);
+        virtual ~LogFormatter();
+        std::string format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event);
+        std::ostream& format(std::ostream& ofs, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event);
     public:
         class FormatItem {
         public:
@@ -113,13 +115,15 @@ namespace common
     {
     public:
         typedef std::shared_ptr<LogAppender> ptr;
-        //virtual ~LogAppender();
+        virtual ~LogAppender();
         //纯虚函数
         virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
         void setFormatter(LogFormatter::ptr formatter) {m_formatter = formatter;}
         LogFormatter::ptr getLogFormatter() const {return m_formatter;}
+        LogLevel::Level getLevel() const { return m_level;}
+        void setLevel(LogLevel::Level val) { m_level = val;}
     protected:
-        LogLevel::Level m_level;
+        LogLevel::Level m_level = LogLevel::DEBUG;
         LogFormatter::ptr m_formatter;
     };
 
@@ -131,6 +135,7 @@ namespace common
         typedef std::shared_ptr<Logger> ptr;
 
         Logger(const std::string& name = "root");
+        ~Logger();
 
         void log(LogLevel::Level level, LogEvent::ptr event);
 

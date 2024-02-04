@@ -23,7 +23,7 @@ namespace common
     class MessageFormatItem : public LogFormatter::FormatItem
     {
     public:
-        explicit MessageFormatItem(const std::string & fmt = "") {};
+        MessageFormatItem(const std::string & fmt = "") {};
         void format(Logger::ptr logger, LogLevel::Level level,
                     std::ostream& os, LogEvent::ptr event) override {
             os << event -> getContent();
@@ -147,9 +147,13 @@ namespace common
         //std::cout << m_name << std::endl;
     }
 
+    Logger::~Logger() {
+
+    }
+
     void Logger::addAppender(LogAppender::ptr appender)
     {
-        if (appender->getLogFormatter())
+        if (!appender->getLogFormatter())
         {
             appender->setFormatter(m_formatter);
         }
@@ -201,6 +205,10 @@ namespace common
         log(LogLevel::FATAL, event);
     }
 
+    LogAppender::~LogAppender() {
+        std::cout << "~LogAppender" << std::endl;
+    }
+
     FileLogAppender::FileLogAppender(const std::string &filename) :m_filename(filename)
     {
 
@@ -210,7 +218,7 @@ namespace common
     {
         if (level >= m_level)
         {
-            m_filestream << m_formatter -> format(logger, level, event);
+            m_formatter -> format(m_filestream, logger, level, event);
         }
     }
 
@@ -229,7 +237,7 @@ namespace common
     {
         if (level >= m_level)
         {
-            std::cout << m_formatter->format(logger, level, event);
+            m_formatter->format(std::cout, logger, level, event);
         }
     }
 
@@ -237,13 +245,23 @@ namespace common
         init();
     }
 
-    std::string LogFormatter::format(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) {
+    std::string LogFormatter::format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
         std::stringstream ss;
-        for (const auto &item: m_items)
-        {
-            item->format(logger, level, ss, event);
+        for(auto& i : m_items) {
+            i->format(logger, level, ss, event);
         }
         return ss.str();
+    }
+
+    std::ostream& LogFormatter::format(std::ostream& ofs, std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) {
+        for(auto& i : m_items) {
+            i->format(logger, level, ofs, event);
+        }
+        return ofs;
+    }
+
+    LogFormatter::~LogFormatter() {
+        std::cout << "~LogFormatter" << std::endl;
     }
 
     void LogFormatter::init() {
@@ -319,16 +337,6 @@ namespace common
             vec.push_back(std::make_tuple(nstr, "", 0));
         }
 
-        //%m 消息体
-        //%p level
-        //%r 启动后的时间
-        //%c 日志名称
-        //%t 线程id
-        //%n 回车换行
-        //%d 时间
-        //%f 文件名
-        //%l 行号
-
         static std::map<std::string, std::function<FormatItem::ptr(const std::string&)>> s_format_items = {
 #define XX(str, C) \
                 {#str, [](const std::string& fmt) {return FormatItem::ptr(new C(fmt));}}
@@ -343,16 +351,10 @@ namespace common
                 XX(l, LineFormatItem)
 #undef XX
         };
-
-
-
         for (auto& i: vec) {
-            if (std::get<2>(i) == 0)
-            {
+            if (std::get<2>(i) == 0){
                 m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>(i))));
-            }
-            else
-            {
+            }else{
                 auto it = s_format_items.find(std::get<0>(i));
                 if (it == s_format_items.end())
                 {
@@ -364,9 +366,7 @@ namespace common
                     m_items.push_back(it->second(std::get<1>(i)));
                 }
             }
-            std::cout << std::get<0>(i) << "-" << std::get<1>(i) << std::get<2>(i) << std::endl;
         }
-
     }
 
 }
