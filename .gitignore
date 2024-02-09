@@ -3,5 +3,5 @@ cmake-build-debug
 .cmake
 build
 .vscode
-lib
-bin
+lib/**
+bin/**
